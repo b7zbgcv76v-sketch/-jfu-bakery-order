@@ -254,8 +254,83 @@ input,select,button{font:inherit;border:1px solid var(--line);border-radius:10px
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;margin:10px 0}.boxes{background:#faf7f2;border-radius:12px;padding:10px;white-space:pre-wrap;font-size:14px;line-height:1.5}.actions{display:flex;gap:7px;align-items:center;margin-top:9px}
 .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#efe5dc;font-size:12px;font-weight:800}
 #login{max-width:430px;margin:70px auto}.danger{color:#a33}.empty{text-align:center;padding:35px;color:var(--muted)}
-@media(max-width:700px){.filters{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.head{display:block}.actions{flex-wrap:wrap}}
-</style></head><body>
+@media(max-width:700px){.filters{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.head{display:block}.actions{flex-wrap:wrap}} .detailgrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:14px 0;
+}
+.detailgrid>div,.infoBlock,.boxcard,.pricebox{
+  background:#fffaf7;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+}
+.detailgrid span,.label{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:4px;
+}
+.boxesArea{
+  display:grid;
+  gap:10px;
+  margin:12px 0;
+}
+.boxtitle{
+  font-weight:900;
+  margin-bottom:8px;
+}
+.itemrow{
+  display:flex;
+  justify-content:space-between;
+  padding:5px 0;
+  border-bottom:1px dashed var(--line);
+}
+.itemrow:last-child{
+  border-bottom:0;
+}
+.pricebox{
+  margin:12px 0;
+}
+.pricebox>div{
+  display:flex;
+  justify-content:space-between;
+  padding:5px 0;
+}
+.pricebox .grand{
+  margin-top:5px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+  font-size:18px;
+}
+.actions{
+  display:flex;
+  gap:10px;
+  align-items:end;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+.actions label{
+  flex:1;
+  min-width:160px;
+}
+.paystatus{
+  padding:10px 12px;
+  background:#fffaf7;
+  border-radius:10px;
+}
+.danger{
+  background:#fff;
+  border:1px solid #b85d50;
+  color:#9a3d32;
+}
+@media(max-width:700px){
+  .detailgrid{
+    grid-template-columns:1fr;
+  }
+}
+     </style></head><body>
 <div class="wrap">
 <div id="login" class="card"><h1>桔富屋烘焙坊｜訂單後台</h1><p class="muted">請輸入店家管理密碼</p><input id="pw" type="password" placeholder="管理密碼" style="width:100%;margin-bottom:10px"><button class="primary" style="width:100%" onclick="login()">登入</button><p id="loginerr" class="danger"></p></div>
 <div id="app" hidden>
@@ -282,13 +357,130 @@ async function load(){
  try{let d=await api("/api/admin/orders?"+p);render(d.orders)}catch(e){$("orders").innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
 }
 function render(a){
- let total=a.length, money=a.filter(o=>o.status!=="已取消").reduce((s,o)=>s+o.total,0), unpaid=a.filter(o=>o.status==="待匯款").length, paid=a.filter(o=>o.status==="已付款").length;
- $("stats").innerHTML='<div class="stat"><span class="muted">目前顯示</span><b>'+total+'</b>筆</div><div class="stat"><span class="muted">待匯款</span><b>'+unpaid+'</b>筆</div><div class="stat"><span class="muted">已付款</span><b>'+paid+'</b>筆</div><div class="stat"><span class="muted">訂單總額</span><b>$'+money.toLocaleString()+'</b></div>';
- if(!a.length){$("orders").innerHTML='<div class="empty">目前沒有符合條件的訂單</div>';return}
- $("orders").innerHTML=a.map(o=>'<div class="order"><div class="head"><div><div class="no">'+esc(o.order_no)+' <span class="badge">'+esc(o.status)+'</span></div><div class="muted">下單：'+esc(fmt(o.created_at))+'</div></div><b>$'+Number(o.total).toLocaleString()+'</b></div><div class="grid"><div><b>'+esc(o.customer_name)+'</b>｜'+esc(o.phone)+'</div><div><b>出貨：</b>'+esc(o.ship_date)+'</div><div><b>配送：</b>'+esc(o.shipping_method)+'</div><div><b>地址／門市：</b>'+esc(o.address)+'</div></div><div class="boxes">'+esc(boxText(o.boxes_json))+'</div>'+(o.note?'<p><b>備註：</b>'+esc(o.note)+'</p>':'')+'<div class="muted">商品 $'+o.subtotal+' ＋ 運費 $'+o.shipping_fee+' ＝ <b>總計 $'+o.total+'</b></div><div class="actions"><select id="s'+o.id+'"><option>待匯款</option><option>已付款</option><option>製作中</option><option>已出貨</option><option>已完成</option><option>已取消</option></select><button onclick="statusChange('+o.id+')">更新狀態</button><button class="danger" onclick="delOrder('+o.id+',\\''+esc(o.order_no)+'\\')">刪除</button></div></div>').join("");
- a.forEach(o=>$("s"+o.id).value=o.status);
-}
-async function statusChange(id){try{await api("/api/admin/orders/"+id+"/status",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({status:$("s"+id).value})});load()}catch(e){alert(e.message)}}
+  const total=a.length;
+  const money=a
+    .filter(o=>(o.order_status||o.status)!=="已取消")
+    .reduce((s,o)=>s+Number(o.total||0),0);
+
+  const unpaid=a.filter(o=>
+    (o.payment_status||"未確認")!=="已付款" &&
+    (o.order_status||o.status)!=="已取消"
+  ).length;
+
+  const paid=a.filter(o=>
+    (o.payment_status||"未確認")==="已付款"
+  ).length;
+
+  $("stats").innerHTML=
+    '<div class="stat"><span class="muted">訂單</span><b>'+total+'</b></div>'+
+    '<div class="stat"><span class="muted">總金額</span><b>$'+money+'</b></div>'+
+    '<div class="stat"><span class="muted">未確認付款</span><b>'+unpaid+'</b></div>'+
+    '<div class="stat"><span class="muted">已付款</span><b>'+paid+'</b></div>';
+
+  if(!a.length){
+    $("orders").innerHTML='<div class="empty">目前沒有符合條件的訂單</div>';
+    return;
+  }
+
+  $("orders").innerHTML=a.map(o=>{
+    let boxesHtml="";
+
+    try{
+      const boxes=JSON.parse(o.boxes||o.boxes_json||"[]");
+
+      boxesHtml=boxes.map(b=>{
+        const selections=(b.selections||[])
+          .map(s=>'<div class="itemrow"><span>'+esc(s.name)+'</span><b>× '+s.qty+'</b></div>')
+          .join("");
+
+        return `
+          <div class="boxcard">
+            <div class="boxtitle">
+              第 ${b.box_no||"-"} 盒｜${b.size||"-"} 入
+            </div>
+            ${selections}
+          </div>
+        `;
+      }).join("");
+    }catch(e){
+      boxesHtml='<div class="muted">禮盒內容無法解析</div>';
+    }
+
+    const rawNote=o.note||"";
+    const noteLines=rawNote.split("\\n");
+    const shipDateLine=noteLines.find(x=>x.startsWith("出貨日期："))||"";
+    const shipDate=shipDateLine.replace("出貨日期：","")||o.ship_date||"未設定";
+
+    const cleanNote=noteLines
+      .filter(x=>!x.startsWith("出貨日期："))
+      .join("\\n")
+      .trim() || "無";
+
+    const orderStatus=o.order_status||o.status||"新訂單";
+    const paymentStatus=o.payment_status||"未確認";
+    const shippingInfo=o.shipping_info||o.address||"";
+
+    return `
+      <div class="order">
+        <div class="ohead">
+          <div>
+            <div class="no">${esc(o.order_no||"")}</div>
+            <div class="muted">訂單日期：${esc(o.created_at||"")}</div>
+          </div>
+          <span class="badge">${esc(orderStatus)}</span>
+        </div>
+
+        <div class="detailgrid">
+          <div><span>訂購人</span><b>${esc(o.customer_name||"")}</b></div>
+          <div><span>電話</span><b>${esc(o.phone||"")}</b></div>
+          <div><span>出貨日期</span><b>${esc(shipDate)}</b></div>
+          <div><span>配送方式</span><b>${esc(o.shipping_method||"")}</b></div>
+        </div>
+
+        <div class="infoBlock">
+          <span class="label">收件地址／門市</span>
+          <div>${esc(shippingInfo)}</div>
+        </div>
+
+        <div class="boxesArea">
+          ${boxesHtml}
+        </div>
+
+        <div class="pricebox">
+          <div><span>商品小計</span><b>$${Number(o.product_total||o.subtotal||0)}</b></div>
+          <div><span>運費</span><b>$${Number(o.shipping_fee||0)}</b></div>
+          <div class="grand"><span>總計</span><b>$${Number(o.total||0)}</b></div>
+        </div>
+
+        <div class="infoBlock">
+          <span class="label">備註</span>
+          <div>${esc(cleanNote)}</div>
+        </div>
+
+        <div class="actions">
+          <label>
+            訂單狀態
+            <select id="s${o.id}" onchange="statusChange(${o.id})">
+              <option ${orderStatus==="新訂單"?"selected":""}>新訂單</option>
+              <option ${orderStatus==="製作中"?"selected":""}>製作中</option>
+              <option ${orderStatus==="已出貨"?"selected":""}>已出貨</option>
+              <option ${orderStatus==="已完成"?"selected":""}>已完成</option>
+              <option ${orderStatus==="已取消"?"selected":""}>已取消</option>
+            </select>
+          </label>
+
+          <div class="paystatus">
+            付款狀態：<b>${esc(paymentStatus)}</b>
+          </div>
+
+          <button class="danger" onclick="delOrder(${o.id},'${esc(o.order_no||"")}')">
+            刪除訂單
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}async function statusChange(id){try{await api("/api/admin/orders/"+id+"/status",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({status:$("s"+id).value})});load()}catch(e){alert(e.message)}}
 async function delOrder(id,no){if(!confirm("確定刪除 "+no+"？刪除後無法復原。"))return;try{await api("/api/admin/orders/"+id,{method:"DELETE"});load()}catch(e){alert(e.message)}}
 $("q").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
 fetch("/api/admin/orders").then(r=>{if(r.ok){$("login").hidden=true;$("app").hidden=false;return r.json()}throw 0}).then(d=>d&&render(d.orders)).catch(()=>{});
