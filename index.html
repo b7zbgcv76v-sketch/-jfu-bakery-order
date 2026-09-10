@@ -23,7 +23,7 @@
 帳號：<strong id="bankAccount">28881012467980</strong>
 <button type="button" class="copymini" id="copyBank">📋 複製帳號</button><br>
 戶名：白@涵</div>
-<p class="note"><strong>訂單送出後會先取得訂單編號；完成匯款並經店家確認後才算正式成立。</strong><br>請先確認每一盒皆已選滿，並完整填寫必填資料。</p>
+<p class="note"><strong>訂單須完成匯款並經店家確認後才算成立。</strong><br>請先確認每一盒皆已選滿，並完整填寫必填資料。</p>
 <button class="submit" id="submit">產生完整訂單內容</button>
 <div id="orderPreview" class="orderpreview" hidden>
   <div class="previewtitle">訂單內容已整理完成</div>
@@ -95,46 +95,17 @@ document.getElementById('submit').onclick=async()=>{
  const sub=boxes.reduce((sum,b)=>sum+b.qty.reduce((s,q,i)=>s+q*items[i][1],0),0);
 
  let boxText='';
- const boxPayload=[];
  boxes.forEach((b,index)=>{
-   const selections=items.map((it,i)=>b.qty[i]?{name:it[0],qty:b.qty[i],unit_price:it[1]}:null).filter(Boolean);
-   const detail=selections.map(x=>`${x.name} × ${x.qty}`).join('、');
+   const detail=items.map((it,i)=>b.qty[i]?`${it[0]} × ${b.qty[i]}`:'').filter(Boolean).join('、');
    const boxPrice=b.qty.reduce((s,q,i)=>s+q*items[i][1],0);
    boxText+=`\n第 ${index+1} 盒｜${b.size} 入｜$${boxPrice}\n${detail}\n`;
-   boxPayload.push({box_no:index+1,size:b.size,box_price:boxPrice,selections});
  });
 
  const counts=Object.fromEntries(boxTypes.map(s=>[s,0]));
  boxes.forEach(b=>counts[b.size]++);
  const boxSummary=boxTypes.filter(s=>counts[s]).map(s=>`${s}入 × ${counts[s]}盒`).join('、');
 
- const submitBtn=document.getElementById('submit');
- submitBtn.disabled=true;
- const originalText=submitBtn.textContent;
- submitBtn.textContent='訂單送出中…';
-
- try{
-   const resp=await fetch('/api/orders',{
-     method:'POST',
-     headers:{'Content-Type':'application/json'},
-     body:JSON.stringify({
-       customer_name:nameVal,
-       phone:phoneVal,
-       ship_date:shipDate,
-       shipping_method:ship,
-       address: addressVal,
-       note:noteVal==='無'?'':noteVal,
-       boxes:boxPayload,
-       subtotal:sub,
-       shipping_fee:fee,
-       total:sub+fee
-     })
-   });
-   const data=await resp.json().catch(()=>({}));
-   if(!resp.ok) throw new Error(data.error||'訂單送出失敗，請稍後再試。');
-
-   latestOrderText=`【桔富屋烘焙坊｜中秋月餅訂單】
-訂單編號：${data.order_no}
+ latestOrderText=`【桔富屋烘焙坊｜中秋月餅訂單】
 姓名：${nameVal}
 電話：${phoneVal}
 出貨日期：${shipDate}
@@ -148,21 +119,50 @@ ${boxText}
 總計：$${sub+fee}
 備註：${noteVal}
 
-※ 訂單已送入店家系統。
-※ 完成匯款並經店家確認後才算正式成立。`;
+※ 訂單須完成匯款並經店家確認後才算成立。`;
 
+ const payload={
+   customer_name:nameVal,
+   phone:phoneVal,
+   ship_date:shipDate,
+   shipping_method:ship,
+   address:addressVal,
+   note:noteVal==='無'?'':noteVal,
+   boxes:boxes.map(b=>({
+     size:b.size,
+     selections:items.map((it,i)=>b.qty[i]>0?{name:it[0],qty:b.qty[i]}:null).filter(Boolean)
+   }))
+ };
+
+ const submitBtn=document.getElementById('submit');
+ submitBtn.disabled=true;
+ const oldBtnText=submitBtn.textContent;
+ submitBtn.textContent='訂單送出中…';
+ try{
+   const response=await fetch('/api/orders',{
+     method:'POST',
+     headers:{'content-type':'application/json'},
+     body:JSON.stringify(payload)
+   });
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(result.error||'訂單送出失敗，請稍後再試。');
+
+   latestOrderText=`訂單編號：${result.order_no}\n${latestOrderText}`;
    document.getElementById('orderText').value=latestOrderText;
    document.getElementById('orderPreview').hidden=false;
-   try{await navigator.clipboard.writeText(latestOrderText);}catch(e){}
+
+   try{await navigator.clipboard.writeText(latestOrderText);}
+   catch(e){}
+
    document.getElementById('orderPreview').scrollIntoView({behavior:'smooth',block:'start'});
-   alert(`訂單已成功送出！\n訂單編號：${data.order_no}\n\n請再前往官方 LINE 回傳訂單及匯款資訊。`);
- }catch(err){
-   alert(err.message||'訂單送出失敗，請稍後再試。');
+   alert(`訂單已成功送出！\n訂單編號：${result.order_no}\n請再前往官方 LINE 回傳訂單及匯款資訊。`);
+ }catch(e){
+   alert('訂單尚未送出：'+e.message);
  }finally{
    submitBtn.disabled=false;
-   submitBtn.textContent=originalText;
+   submitBtn.textContent=oldBtnText;
  }
-}
+};
 updateShippingUI();
 const initialShipDate=document.querySelector('input[name="shipdate"]:checked');
 document.getElementById('shipDateSummary').textContent=initialShipDate?initialShipDate.value:'尚未選擇';
