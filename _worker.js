@@ -486,3 +486,4 @@ $("q").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
 fetch("/api/admin/orders").then(r=>{if(r.ok){$("login").hidden=true;$("app").hidden=false;return r.json()}throw 0}).then(d=>d&&render(d.orders)).catch(()=>{});
 </script></body></html>`;
 }
+ 
