@@ -393,14 +393,10 @@ function render(a){
           .map(s=>'<div class="itemrow"><span>'+esc(s.name)+'</span><b>× '+s.qty+'</b></div>')
           .join("");
 
-        return `
-          <div class="boxcard">
-            <div class="boxtitle">
-              第 ${b.box_no||"-"} 盒｜${b.size||"-"} 入
-            </div>
-            ${selections}
-          </div>
-        `;
+return '<div class="boxcard">'+
+  '<div class="boxtitle">第 '+(b.box_no||"-")+' 盒｜'+(b.size||"-")+' 入</div>'+
+  selections+
+  '</div>';
       }).join("");
     }catch(e){
       boxesHtml='<div class="muted">禮盒內容無法解析</div>';
@@ -424,66 +420,53 @@ function render(a){
       <div class="order">
         <div class="ohead">
           <div>
-            <div class="no">${esc(o.order_no||"")}</div>
-            <div class="muted">訂單日期：${esc(o.created_at||"")}</div>
-          </div>
-          <span class="badge">${esc(orderStatus)}</span>
-        </div>
+return '<div class="order">'+
+  '<div class="ohead">'+
+    '<div>'+
+      '<div class="no">'+esc(o.order_no||"")+'</div>'+
+      '<div class="muted">訂單日期：'+esc(o.created_at||"")+'</div>'+
+    '</div>'+
+    '<span class="badge">'+esc(orderStatus)+'</span>'+
+  '</div>'+
 
-        <div class="detailgrid">
-          <div><span>訂購人</span><b>${esc(o.customer_name||"")}</b></div>
-          <div><span>電話</span><b>${esc(o.phone||"")}</b></div>
-          <div><span>出貨日期</span><b>${esc(shipDate)}</b></div>
-          <div><span>配送方式</span><b>${esc(o.shipping_method||"")}</b></div>
-        </div>
+  '<div class="detailgrid">'+
+    '<div><span>訂購人</span><b>'+esc(o.customer_name||"")+'</b></div>'+
+    '<div><span>電話</span><b>'+esc(o.phone||"")+'</b></div>'+
+    '<div><span>出貨日期</span><b>'+esc(shipDate)+'</b></div>'+
+    '<div><span>配送方式</span><b>'+esc(o.shipping_method||"")+'</b></div>'+
+  '</div>'+
 
-        <div class="infoBlock">
-          <span class="label">收件地址／門市</span>
-          <div>${esc(shippingInfo)}</div>
-        </div>
+  '<div class="infoBlock">'+
+    '<span class="label">收件地址／門市</span>'+
+    '<div>'+esc(shippingInfo)+'</div>'+
+  '</div>'+
 
-        <div class="boxesArea">
-          ${boxesHtml}
-        </div>
+  '<div class="boxesArea">'+boxesHtml+'</div>'+
 
-        <div class="pricebox">
-          <div><span>商品小計</span><b>$${Number(o.product_total||o.subtotal||0)}</b></div>
-          <div><span>運費</span><b>$${Number(o.shipping_fee||0)}</b></div>
-          <div class="grand"><span>總計</span><b>$${Number(o.total||0)}</b></div>
-        </div>
+  '<div class="pricebox">'+
+    '<div><span>商品小計</span><b>$'+Number(o.product_total||o.subtotal||0)+'</b></div>'+
+    '<div><span>運費</span><b>$'+Number(o.shipping_fee||0)+'</b></div>'+
+    '<div class="grand"><span>總計</span><b>$'+Number(o.total||0)+'</b></div>'+
+  '</div>'+
 
-        <div class="infoBlock">
-          <span class="label">備註</span>
-          <div>${esc(cleanNote)}</div>
-        </div>
+  '<div class="infoBlock">'+
+    '<span class="label">備註</span>'+
+    '<div>'+esc(cleanNote)+'</div>'+
+  '</div>'+
 
-        <div class="actions">
-          <label>
-            訂單狀態
-            <select id="s${o.id}" onchange="statusChange(${o.id})">
-              <option ${orderStatus==="新訂單"?"selected":""}>新訂單</option>
-              <option ${orderStatus==="製作中"?"selected":""}>製作中</option>
-              <option ${orderStatus==="已出貨"?"selected":""}>已出貨</option>
-              <option ${orderStatus==="已完成"?"selected":""}>已完成</option>
-              <option ${orderStatus==="已取消"?"selected":""}>已取消</option>
-            </select>
-          </label>
+  '<div class="actions">'+
+    '<label>訂單狀態'+
+      '<select id="s'+o.id+'" onchange="statusChange('+o.id+')">'+
+        '<option '+(orderStatus==="新訂單"?"selected":"")+'>新訂單</option>'+
+        '<option '+(orderStatus==="製作中"?"selected":"")+'>製作中</option>'+
+        '<option '+(orderStatus==="已出貨"?"selected":"")+'>已出貨</option>'+
+        '<option '+(orderStatus==="已完成"?"selected":"")+'>已完成</option>'+
+        '<option '+(orderStatus==="已取消"?"selected":"")+'>已取消</option>'+
+      '</select>'+
+    '</label>'+
 
-          <div class="paystatus">
-            付款狀態：<b>${esc(paymentStatus)}</b>
-          </div>
+    '<div class="paystatus">付款狀態：<b>'+esc(paymentStatus)+'</b></div>'+
 
-          <button class="danger" onclick="delOrder(${o.id},'${esc(o.order_no||"")}')">
-            刪除訂單
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}async function statusChange(id){try{await api("/api/admin/orders/"+id+"/status",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({status:$("s"+id).value})});load()}catch(e){alert(e.message)}}
-async function delOrder(id,no){if(!confirm("確定刪除 "+no+"？刪除後無法復原。"))return;try{await api("/api/admin/orders/"+id,{method:"DELETE"});load()}catch(e){alert(e.message)}}
-$("q").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
-fetch("/api/admin/orders").then(r=>{if(r.ok){$("login").hidden=true;$("app").hidden=false;return r.json()}throw 0}).then(d=>d&&render(d.orders)).catch(()=>{});
-</script></body></html>`;
-}
- 
+    '<button class="danger" onclick="delOrder('+o.id+')">刪除訂單</button>'+
+  '</div>'+
+'</div>';
