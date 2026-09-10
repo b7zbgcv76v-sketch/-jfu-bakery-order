@@ -1,0 +1,31 @@
+桔富屋烘焙坊｜有後台版本
+==============================
+
+本資料夾包含：
+1. index.html — 客人下單頁面
+2. _worker.js — 訂單 API + 店家後台
+
+Cloudflare 設定重點：
+- 建立 Cloudflare Pages「Direct Upload / Drag and drop」專案。
+- 上傳這兩個檔案（可直接上傳 ZIP）。
+- 建立 D1 database，例如：jfu-orders。
+- 在 Pages 專案 Settings / Bindings 新增 D1 binding：
+  Variable name 必須填：DB
+  Database 選：jfu-orders
+- 新增 Secret / Environment variable：
+  名稱：ADMIN_PASSWORD
+  值：請自行設定至少 8 碼、不要和其他帳號共用的密碼
+- 設定完成後重新部署一次。
+
+客人頁面：
+https://你的網址/
+
+店家後台：
+https://你的網址/admin
+
+訂單狀態：
+待匯款 / 已付款 / 製作中 / 已出貨 / 已完成 / 已取消
+
+注意：
+- 客戶姓名、電話、地址屬於個人資料，請勿分享後台網址與密碼。
+- D1 會在第一次 API 使用時自動建立 orders 資料表，不需另外執行 SQL。
