@@ -143,13 +143,36 @@ async function createOrder(request, env) {
   const order_no = `JFU${twDate}-${rand}`;
 
   await env.DB.prepare(`
-    INSERT INTO orders
-    (order_no,created_at,customer_name,phone,ship_date,shipping_method,address,note,boxes_json,subtotal,shipping_fee,total,status)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
-  `).bind(
-    order_no, now, customer_name, phone, ship_date, shipping_method, address, note,
-    JSON.stringify(safeBoxes), computedSubtotal, shippingFee, total, "待匯款"
-  ).run();
+  INSERT INTO orders
+  (
+    order_no,
+    customer_name,
+    phone,
+    shipping_method,
+    shipping_info,
+    boxes,
+    product_total,
+    shipping_fee,
+    total,
+    note,
+    payment_status,
+    order_status
+  )
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`).bind(
+  order_no,
+  customer_name,
+  phone,
+  shipping_method,
+  address,
+  JSON.stringify(safeBoxes),
+  computedSubtotal,
+  shippingFee,
+  total,
+  `出貨日期：${ship_date}${note ? "\n" + note : ""}`,
+  "未確認",
+  "新訂單"
+).run();
 
   return json({ok:true,order_no,total,status:"待匯款"},201);
 }
